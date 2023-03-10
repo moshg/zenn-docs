@@ -29,6 +29,7 @@ import { useState } from "react";
 function App(): JSX.Element {
   const [value1, setValue1] = useState(0);
   const [value2, setValue2] = useState(0);
+
   return (
     <table>
       <thead>
@@ -86,6 +87,7 @@ function App(): JSX.Element {
       setValue2(e.currentTarget.valueAsNumber),
     []
   );
+
   return (
     <table>
       <thead>
@@ -148,6 +150,7 @@ function App(): JSX.Element {
         return e.target.valueAsNumber;
       })
     );
+
   return (
     <table>
       <thead>
@@ -191,15 +194,20 @@ import { useCallback, useState } from "react";
 
 function App(): JSX.Element {
   const [values, setValues] = useState(Array.from({ length: 5 }, () => 0));
-  const handleChange = (value: number, index: number) =>
-    setValues((values) =>
-      values.map((v, i) => {
-        if (i !== index) {
-          return v;
-        }
-        return value;
-      })
-    );
+
+  const handleChange = useCallback(
+    (value: number, index: number) =>
+      setValues((values) =>
+        values.map((v, i) => {
+          if (i !== index) {
+            return v;
+          }
+          return value;
+        })
+      ),
+    []
+  );
+
   return (
     <table>
       <thead>
@@ -228,6 +236,7 @@ function Row(props: {
     },
     [props.onChange, props.index]
   );
+
   return (
     <tr>
       <td>
@@ -248,15 +257,17 @@ HTML の要素には[データ属性](https://developer.mozilla.org/ja/docs/Lear
 これにより、インデックスを要素自身に持たせ、コールバック内でインデックスを取得することができます。
 
 ```tsx
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 function App(): JSX.Element {
   const [values, setValues] = useState<number[]>(
     Array.from({ length: 5 }, () => 0)
   );
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const indexStr = e.target.dataset.index;
     const index = indexStr ? Number(indexStr) : undefined;
+
     setValues((values) =>
       values.map((value, i) => {
         if (i !== index) {
@@ -265,7 +276,8 @@ function App(): JSX.Element {
         return e.target.valueAsNumber;
       })
     );
-  };
+  }, []);
+
   return (
     <table>
       <thead>
@@ -314,6 +326,7 @@ function App(): JSX.Element {
   });
   const { fields } = useFieldArray({ control, name: "values" });
   const values = watch("values");
+
   return (
     <table>
       <thead>
