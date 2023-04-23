@@ -1,5 +1,6 @@
 ---
 title: "Reactでｎ個のコールバックをどうメモ化する問題"
+publication_name: "aidemy"
 emoji: ""
 type: "tech"
 topics: ["react", "パフォーマンス"]
