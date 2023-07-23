@@ -60,14 +60,14 @@ VALUES
 `GROUP BY`を使ったものとして以下のように書くことができます。
 
 ```sql
-select
+SELECT
     user_groups.user_group_id,
     user_groups.name,
-    json_agg(users) as users
-from
+    json_agg(users) AS users
+FROM
     user_groups
-    join users on users.user_id = any(user_groups.user_ids)
-group by
+    JOIN users ON users.user_id = ANY(user_groups.user_ids)
+GROUP BY
     user_groups.user_group_id;
 ```
 
@@ -78,24 +78,24 @@ group by
 そこで、配列の順序を維持させるには以下のように書くことができます。
 
 ```sql
-select
+SELECT
     user_groups.user_group_id,
     user_groups.name,
     user_arrays.user_array
-from
+FROM
     user_groups
-    left join lateral (
-        select
+    LEFT JOIN LATERAL (
+        SELECT
             json_agg(
                 users
-                order by
+                ORDER BY
                     user_ids.i
-            ) as user_array
-        from
-            unnest(user_groups.user_ids) with ordinality as user_ids(user_id, i)
-            join users using (user_id)
-    ) user_arrays on true
-order by
+            ) AS user_array
+        FROM
+            unnest(user_groups.user_ids) WITH ordinality AS user_ids(user_id, i)
+            JOIN users USING (user_id)
+    ) user_arrays ON true
+ORDER BY
     user_groups.user_group_id;
 ```
 
