@@ -4,7 +4,7 @@ publication_name: "aidemy"
 emoji: "🔗"
 type: "tech"
 topics: ["graphql"]
-published: false
+published: true
 ---
 
 GraphQL のリゾルバの考え方がすぐには理解できなかったので TypeScript による実装例とともに解説します！！！
