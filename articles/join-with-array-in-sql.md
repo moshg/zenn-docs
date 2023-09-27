@@ -5,7 +5,7 @@ emoji: "💫"
 type: "tech"
 topics: ["sql"]
 
-published: false
+published: true
 ---
 
 この記事は『[PostgreSQLで配列のidとjoinして並び替えるのが難しい](https://qiita.com/nishimura/items/575e642503139229059a)』を参考にしています。
