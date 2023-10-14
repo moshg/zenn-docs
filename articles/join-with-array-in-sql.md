@@ -14,7 +14,7 @@ published: true
 
 ## テーブル定義
 
-以下のようにユーザーテーブルとユーザーグループテーブルを考えます。
+まず前提条件として以下のようなユーザーテーブルとユーザーグループテーブルを考えます。
 
 ```sql
 CREATE TABLE user_groups (
@@ -53,11 +53,66 @@ VALUES
 
 :::
 
-この`user_groups`の`user_ids`で紐づけて`users`テーブルのデータを取得したいというのがこの記事の内容になります。
+この`user_groups`の`user_ids`で紐づけて`users`テーブルのデータを取得する方法を紹介するというのがこの記事の内容になります。
 
-## 配列でJOINする
+## サブクエリを使う書き方
 
-`GROUP BY`を使ったものとして以下のように書くことができます。
+`user_groups`の`user_ids`で紐づけて`users`テーブルのデータを取得するには、`GROUP BY`を使って以下のように書くことができます。
+
+```sql
+SELECT
+    user_groups.user_group_id,
+    user_groups.name,
+    (
+        SELECT
+            json_agg(users)
+        FROM
+            users
+        WHERE
+            users.user_id = any(user_groups.user_ids)
+    ) AS users
+FROM
+    user_groups;
+```
+
+`users.user_id = any(user_groups.user_ids)` は等号が成り立つ要素が`user_groups.user_ids`に存在するとき`TRUE`となります。[^1]
+
+ただし、この書き方では配列内の順序が維持される保証がありません。
+つまり `user_groups.user_ids` と異なる順番で`users`の中身が並ぶ可能性があります。
+そこで、配列の順序を維持させる方法を紹介していきます。クエリは以下のようになります。
+
+```sql
+SELECT
+    user_groups.user_group_id,
+    user_groups.name,
+    (
+        SELECT
+            json_agg(users ORDER BY user_ids.i)
+        FROM
+            unnest(user_groups.user_ids) WITH ORDINALITY AS user_ids(user_id, i)
+        JOIN users USING (user_id)
+    ) AS users
+FROM
+    user_groups;
+```
+
+順を追って上のコードを説明していきましょう。
+
+まず `unnest(user_groups.user_ids) WITH ORDINALITY AS user_ids(user_id, i)` から説明します。
+`unnest(user_groups.user_ids)` で`user_ids`を配列をテーブル (より正確には行の集合) に変換しています。[^2]
+`WITH ORDINALITY` でテーブルの列として配列のインデックス (1始まり) を加えています。[^3]
+つまり、user_groups.user_idsの中身とインデックスを列として持つテーブルが作成されています。
+`AS user_ids(user_id, i)` で上記のテーブルのエイリアスを指定しています。テーブルに`user_ids`、`user_groups.user_ids`の中身に`user_id`、配列のインデックスに`i` というエイリアスを指定しています。
+
+次に `JOIN users USING (user_id)` で`users`を`JOIN`して、`json_agg(users ORDER BY user_ids.i) AS users` で集約しています。
+`json_agg`は入力 (`users`) をJSONの配列として格納します。[^4]
+`ORDER BY user_ids.i` で`user_ids`のインデックスと同じ順序で配列の要素が並ぶようにしています。[^4]
+
+これでやりたかったクエリを作成することができました。
+
+## 他の方法
+
+配列の順序を問わないなら、以下のように`GROUP BY`で書くこともできます。
 
 ```sql
 SELECT
@@ -66,51 +121,34 @@ SELECT
     json_agg(users) AS users
 FROM
     user_groups
-    JOIN users ON users.user_id = ANY(user_groups.user_ids)
+JOIN
+    users ON users.user_id = ANY(user_groups.user_ids)
 GROUP BY
     user_groups.user_group_id;
 ```
 
-`users.user_id = any(user_groups.user_ids)` は等号が成り立つ要素が`user_groups.user_ids`に存在するとき`TRUE`となります。[^1]
-
-上記の書き方には配列内の順序が維持される保証がありません。
-つまり `user_groups.user_ids` と異なる順番で `json_agg(users)` の中身が並ぶ可能性があります。
-そこで、配列の順序を維持させるには以下のように書くことができます。
+配列の順序を維持する場合、配列を作成する場所をサブクエリのときと異なる場所で行うこともできます。
 
 ```sql
 SELECT
     user_groups.user_group_id,
     user_groups.name,
-    user_arrays.user_array
+    user_arrays.user_array AS users
 FROM
     user_groups
-    LEFT JOIN LATERAL (
-        SELECT
-            json_agg(
-                users
-                ORDER BY
-                    user_ids.i
-            ) AS user_array
-        FROM
-            unnest(user_groups.user_ids) WITH ordinality AS user_ids(user_id, i)
-            JOIN users USING (user_id)
-    ) user_arrays ON true
+LEFT JOIN LATERAL (
+    SELECT
+        json_agg(users ORDER BY user_ids.i) AS user_array
+    FROM
+        unnest(user_groups.user_ids) WITH ORDINALITY AS user_ids(user_id, i)
+    JOIN users USING (user_id)
+) user_arrays ON true
 ORDER BY
     user_groups.user_group_id;
 ```
 
-順を追って上のコードを説明していきます。
-まず `unnest(user_groups.user_ids) with ordinality as user_ids(user_id, i)` から説明します。
-`unnest(user_groups.user_ids)` で`user_ids`を配列をテーブルに変換しています。[^2]
-`with ordinality` で行の集合に配列のインデックス (1始まり) を加えています。[^3]
-`as user_ids(user_id, i)` でエイリアスをしていて、行の集合に`user_ids`、`user_groups.user_ids`を`unnest`したものに`user_id`、配列のインデックスに`i` というエイリアスを指定しています。
-
-次に `join users using (user_id)` で`users`を`JOIN`して、`json_agg(users order by user_ids.i) as user_array` で集約しています。
-`json_agg`は入力をJSONの配列として格納します。[^4]
-`order by user_ids.i` で配列の順序で並ぶようにしています。[^4]
-
-`left join lateral` となっている部分ですが、`JOIN`する集合は `unnest(user_groups.user_ids)`で`user_groups`を参照しています。
-このようにJOINする集合が前の`FROM`句のテーブルに依存しているときに`LATERAL`を指定します。[^5]
+`JOIN`する集合は `unnest(user_groups.user_ids)`の箇所で`user_groups`を参照しています。
+このようにJOINする集合が前の`FROM`句のテーブルに依存しているときに`LATERAL`を指定する必要があるので`LEFT JOIN LATERAL` と書いています。[^5]
 
 [^1]: https://www.postgresql.jp/document/15/html/functions-comparisons.html#id-1.5.8.32.20
 [^2]: https://www.postgresql.jp/document/15/html/functions-array.html
@@ -120,7 +158,5 @@ ORDER BY
 
 ## おわりに
 
-配列でJOINするための書き方を理解するまでに勉強したことをまとめました。
-
-`users`にさらに他のテーブルを`JOIN`する場合はもう一工夫必要になります。
-その場合については、この記事の内容の参考にした『[PostgreSQLで配列のidとjoinして並び替えるのが難しい](https://qiita.com/nishimura/items/575e642503139229059a)』をご参照ください。
+配列で紐づけてJOINする方法を調べてみたところ、前提知識が多く調べるのが大変だったので記事にしました。
+この記事がこれから学習する人のショートカットになれば幸いです。
