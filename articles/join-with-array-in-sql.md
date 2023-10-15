@@ -8,13 +8,25 @@ topics: ["sql"]
 published: true
 ---
 
+## まえがき
+
+『group∋item』のような関係があったとき皆さんはそれをどう表現しますか？
+一般的にはitemテーブルにgroupへの外部キーを張ることで表現すると思います。
+一方で、最近のSQLには配列があるので逆にgroupにitem_idの配列を持たせるという方法もあります。[^row-type]
+配列で持たせることで順序の管理がしやすくなったり、同じitemを複数のgroupで共有できたりといった利点があります。
+しかし、groupにitem_idの配列を持たせた場合、groupに紐づけてitemを取得するにはどのように書けばよいかがあまり知られていないのではないかと思います。
+そこで、この記事ではその場合にどうやってgroupと一緒にitemの配列を取得するかを紹介します。
+
+[^row-type]: itemテーブルに対して検索する予定がないなら、そもそもitemのテーブルを作成せず、groupはitemを[複合型](https://www.postgresql.jp/docs/9.4/rowtypes.html)の配列として直接持つという方法もあります。
+可能ならitemテーブルを作らないほうがシンプルなんじゃないかと最近思います。
+
 この記事は『[PostgreSQLで配列のidとjoinして並び替えるのが難しい](https://qiita.com/nishimura/items/575e642503139229059a)』を参考にしています。
 
-動作確認はPostgreSQLで行っています。
+動作確認はPostgreSQL 15.3で行っています。
 
 ## テーブル定義
 
-まず前提条件として以下のようなアイテムテーブルとグループテーブルを考えます。
+まず以下のようにテーブルを定義します。
 
 ```sql
 CREATE TABLE items (
@@ -60,7 +72,7 @@ VALUES
 
 ## サブクエリを使う書き方
 
-`groups`の`item_ids`で紐づけて`items`テーブルのデータを取得するには、`GROUP BY`を使って以下のように書くことができます。
+`groups`の`item_ids`で紐づけて`items`テーブルのデータを取得するには、サブクエリを使って以下のように書くことができます。
 
 ```sql
 SELECT
@@ -78,11 +90,12 @@ FROM
     groups;
 ```
 
-`items.item_id = any(groups.item_ids)` は等号が成り立つ要素が`groups.item_ids`に存在するとき`TRUE`となります。[^1]
+`items.item_id = any(groups.item_ids)` は等号が成り立つ要素が`groups.item_ids`に存在するとき`TRUE`となります。[^any]
+`json_agg`は入力 (`items`) をJSONの配列として格納します。[^json-agg]
 
 ただし、この書き方では配列内の順序が維持される保証がありません。
 つまり `groups.item_ids` と異なる順番で`items`の中身が並ぶ可能性があります。
-そこで、配列の順序を維持させる方法を紹介していきます。クエリは以下のようになります。
+配列の順序を維持させようとすると以下のようなクエリになります。
 
 ```sql
 SELECT
@@ -102,13 +115,12 @@ FROM
 順を追って上のコードを説明していきましょう。
 
 まず `unnest(groups.item_ids) WITH ORDINALITY AS item_ids(item_id, i)` から説明します。
-`unnest(groups.item_ids)` で配列`item_ids`をテーブル (より正確には行の集合) に変換しています。[^2]
-`WITH ORDINALITY` でテーブルの列として配列のインデックス (1始まり) を加えています。[^3]
+`unnest(groups.item_ids)` で配列`item_ids`をテーブル (より正確には行の集合) に変換しています。[^unnest]
+`WITH ORDINALITY` でテーブルの列として配列のインデックス (1始まり) を加えています。[^with-ordinality]
 つまり、groups.item_idsの中身とインデックスを列として持つテーブルが作成されています。
 `AS item_ids(item_id, i)` で上記のテーブルのエイリアスを指定しています。テーブルに`item_ids`、`groups.item_ids`の中身に`item_id`、配列のインデックスに`i` というエイリアスを指定しています。
 
 次に `JOIN items USING (item_id)` で`items`を`JOIN`して、`json_agg(items ORDER BY item_ids.i) AS items` で集約しています。
-`json_agg`は入力 (`items`) をJSONの配列として格納します。[^4]
 `ORDER BY item_ids.i` で`item_ids`のインデックスと同じ順序で配列の要素が並ぶようにしています。[^4]
 
 これでやりたかったクエリを作成することができました。
@@ -130,7 +142,7 @@ GROUP BY
     groups.group_id;
 ```
 
-配列の順序を維持する場合、配列を作成する場所をサブクエリのときと異なる場所で行うこともできます。
+配列の順序を維持する場合、前のセクションでサブクエリを使った場合と異なる場所で配列を作成することもできます。
 
 ```sql
 SELECT
@@ -150,16 +162,16 @@ ORDER BY
     groups.group_id;
 ```
 
-`JOIN`する集合は `unnest(groups.item_ids)`の箇所で`groups`を参照しています。
-このようにJOINする集合が前の`FROM`句のテーブルに依存しているときに`LATERAL`を指定する必要があるので`LEFT JOIN LATERAL` と書いています。[^5]
+`JOIN`する集合が `unnest(groups.item_ids)`の箇所で`groups`を参照しています。
+このようにJOINする集合が前の`FROM`句のテーブルに依存しているときに`LATERAL`を指定する必要があるので`LEFT JOIN LATERAL` と書いています。[^lateral]
 
-[^1]: https://www.postgresql.jp/document/15/html/functions-comparisons.html#id-1.5.8.32.20
-[^2]: https://www.postgresql.jp/document/15/html/functions-array.html
-[^3]: https://www.postgresql.jp/document/15/html/functions-srf.html
-[^4]: https://www.postgresql.jp/document/15/html/functions-aggregate.html
-[^5]: https://www.postgresql.jp/document/15/html/queries-table-expressions.html#QUERIES-LATERAL
+[^any]: https://www.postgresql.jp/document/15/html/functions-comparisons.html#id-1.5.8.32.20
+[^unnest]: https://www.postgresql.jp/document/15/html/functions-array.html
+[^with-ordinality]: https://www.postgresql.jp/document/15/html/functions-srf.html
+[^json-agg]: https://www.postgresql.jp/document/15/html/functions-aggregate.html
+[^lateral]: https://www.postgresql.jp/document/15/html/queries-table-expressions.html#QUERIES-LATERAL
 
 ## おわりに
 
-配列で紐づけてJOINする方法を調べてみたところ、前提知識が多く調べるのが大変だったので記事にしました。
+配列で紐づけてJOINする方法を調べてみたところ、必要な知識が多く調べるのが大変だったので記事にしました。
 この記事がこれから学習する人のショートカットになれば幸いです。
