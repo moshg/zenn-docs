@@ -1,10 +1,10 @@
 ---
 title: "今更JavaScriptのclassとprototypeを勉強する"
 publication_name: "aidemy"
-emoji: "👴"
+emoji: "📝"
 type: "tech"
 topics: ["javascript", "typescript"]
-published: false
+published: true
 ---
 
 ## はじめに
