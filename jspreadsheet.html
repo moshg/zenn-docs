@@ -1,0 +1,56 @@
+<html>
+<script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+<link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
+ 
+<script src="https://jsuites.net/v4/jsuites.js"></script>
+<link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+ 
+<div id="spreadsheet"></div>
+ 
+<script>
+const columns = [
+    {
+        type: 'numeric',
+        title: 'col1',
+        width: 80,
+    },
+    {
+        type: 'numeric',
+        title: 'col2',
+        width: 80,
+    },
+    {
+        type: 'numeric',
+        title: 'col3',
+        width: 80,
+    },
+    {
+        type: 'numeric',
+        title: 'col4',
+        width: 80,
+    }
+]
+
+const data = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16],
+    [17, 18, 19, 20],
+];
+
+function onchange(instance, cell, column, row, value) {
+    const targetRow = cell.getAttribute('data-y');
+    const cells = document.querySelectorAll(`td[data-y="${targetRow}"]`);
+    for (const cell of cells) {
+        cell.style.backgroundColor = '#FFE4C4';
+    }
+}
+
+jspreadsheet(document.getElementById('spreadsheet'), {
+    data:data,
+    columns: columns,
+    onchange: onchange
+});
+</script>
+</html>
