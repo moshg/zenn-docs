@@ -5,7 +5,7 @@ emoji: "❓"
 type: "tech"
 topics: ["typescript"]
 
-published: false
+published: true
 ---
 
 TypeScriptでなんでこの型チェック通らないんだと思うことありますよね。
