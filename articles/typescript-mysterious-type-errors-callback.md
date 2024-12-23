@@ -3,7 +3,7 @@ title: "TypeScriptの原因不明の型エラーの原因 コールバック編"
 publication_name: "aidemy"
 emoji: "❓"
 type: "tech"
-topics: ["typescript"]
+topics: ["typescript", "型システム"]
 
 published: true
 ---
