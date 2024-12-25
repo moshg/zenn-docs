@@ -1,0 +1,84 @@
+<html>
+<script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+<link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
+ 
+<script src="https://jsuites.net/v4/jsuites.js"></script>
+<link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+ 
+<div id="spreadsheet"></div>
+ 
+<script>
+const columns = [
+    {
+        type: 'numeric',
+        title: 'col1',
+        width: 80,
+    },
+    {
+        type: 'numeric',
+        title: 'col2',
+        width: 80,
+    },
+    {
+        type: 'numeric',
+        title: 'col3',
+        width: 80,
+    },
+    {
+        type: 'numeric',
+        title: 'col4',
+        width: 80,
+    }
+]
+
+const originalData = Array.from({ length: 5 }, (_, i) => Array.from({ length: 4 }, (_, j) => i * 4 + j + 1));
+const data = originalData.map(row => row.slice());
+
+/**
+ * データの差分がある行を検出して色を変更する。
+ *
+ * @param {HTMLDivElement} instance 
+ * @param {HTMLTableCellElement} cell 
+ * @param {string} column 
+ * @param {string} row 
+ * @param {string} value 
+ */
+// const onchange = (instance, cell, column, row, value) => {
+//     queueMicrotask(() => {
+//         data.forEach((row, rowIndex) => {
+//             const hasChanges = row.some((cell, colIndex) => cell != originalData[rowIndex][colIndex]);
+//             const color = hasChanges ? '#FFE4C4' : '';
+//             const cells = document.querySelectorAll(`td[data-y="${rowIndex}"]`);
+//             cells.forEach(cell => {
+//                 cell.style.backgroundColor = color;
+//             });
+//         });
+//     });
+// }
+
+let executed = true;
+const onchange = (instance, cell, column, row, value) => {
+    executed = false;
+    queueMicrotask(() => {
+        if (executed) {
+            return;
+        }
+        executed = true;
+        data.forEach((row, rowIndex) => {
+            const hasChanges = row.some((cell, colIndex) => cell != originalData[rowIndex][colIndex]);
+            const color = hasChanges ? '#FFE4C4' : '';
+            const cells = document.querySelectorAll(`td[data-y="${rowIndex}"]`);
+            cells.forEach(cell => {
+                cell.style.backgroundColor = color;
+            });
+        });
+    });
+}
+
+jspreadsheet(document.getElementById('spreadsheet'), {
+    data:data,
+    columns: columns,
+    onchange: onchange
+});
+</script>
+</html>
