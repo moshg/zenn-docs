@@ -3,7 +3,7 @@ title: "PostgreSQLで行に複数紐づくデータを配列として一発で�
 publication_name: "aidemy"
 emoji: "🥌"
 type: "tech"
-topics: ["sql"]
+topics: ["sql", "postgresql"]
 
 published: false
 ---
@@ -107,8 +107,8 @@ JSONではなくJSONBを使っているのはなんとなくです
 jsonb_agg(items ORDER BY items.created_at) -- この記事で定義したテーブルにcreated_atはないが例として
 ```
 
-問題点として、`items`テーブルをまるごと`jsonb_agg`で取り込んでしまったので、`items`フィールドに`group_id`が含まれてしまっています。
-必要なフィールド (`item_id`, `name`) だけに絞りたいですが、その用途には`jsonb_build_object`[^jsonb-fn]というJSONBオブジェクトを作成する関数が使えます。
+ただし`items`テーブルをまるごと`jsonb_agg`で取り込んでしまったので、`items`フィールドに`group_id`が含まれてしまっています。
+`item_id`, `name` だけに絞りたい場合は`jsonb_build_object`[^jsonb-fn]というJSONBオブジェクトを作成する関数が使えます。
 `jsonb_build_object`の使い方の例は以下のようになります。
 
 ```sql
@@ -212,8 +212,8 @@ from
 
 ## あとがき
 
-SQLが案外高機能なことに驚いた方のいるのではないでしょうか。
-実はSQLだけで普通のプログラミング言語のようなデータ構造を実現することができて、データ周りの処理をDBに任せることができます。
+SQLが案外高機能で驚きますね。
+SQLだけでも普通のプログラミング言語のようにネストしたデータ構造を実現して、データ周りの処理をDBに任せることができます。
 この記事が当時の自分のような人の助けになっていれば嬉しいです！
 
-データの入れ子を子からの参照ではなく、親からの参照 (配列) で表現している場合の記事：『[配列でJOINする in SQL](https://zenn.dev/aidemy/articles/join-with-array-in-sql)』
+最後に、データの入れ子を子からの参照ではなく、親からの参照 (配列) で表現している場合の記事を宣伝しておきます: 『[配列でJOINする in SQL](https://zenn.dev/aidemy/articles/join-with-array-in-sql)』
