@@ -5,7 +5,7 @@ emoji: "🤖"
 type: "tech"
 topics: ["cursor", "bolt", "v0", "ai", "llm"]
 
-published: false
+published: true
 ---
 
 ## はじめに
