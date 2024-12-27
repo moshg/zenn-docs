@@ -3,7 +3,7 @@ title: "CursorをBoltやv0のように使う"
 publication_name: "aidemy"
 emoji: "🤖"
 type: "tech"
-topics: ["cursor", "bolt", "v0"]
+topics: ["cursor", "bolt", "v0", "ai", "llm"]
 
 published: false
 ---
