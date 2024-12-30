@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17.2
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      # scripts in /docker-entrypoint-initdb.d is executed on container startup
+      # ref. https://hub.docker.com/_/postgres
+      - ./01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./02_data.sql:/docker-entrypoint-initdb.d/02_data.sql
