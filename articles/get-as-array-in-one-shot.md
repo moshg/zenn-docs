@@ -42,6 +42,23 @@ CREATE TABLE items (
 
 :::details データ投入
 
+groups
+
+| group_id | name    |
+| -------- | ------- |
+| 1        | group_1 |
+| 2        | group_2 |
+
+items
+
+| group_id | item_id | name   |
+| -------- | ------- | ------ |
+| 1        | 1       | item_1 |
+| 1        | 2       | item_2 |
+| 2        | 3       | item_3 |
+
+クエリ
+
 ```sql
 INSERT INTO
     groups (name)
@@ -61,10 +78,10 @@ VALUES
 
 このとき以下のようにデータを取得したいというのがこの記事の目標になります。
 
-|group_id|name|items|
-|-|-|-|
-|1|group_1|[{ item_id: 1, name: "item_1" }, { item_id: 2, name: "item_2" }]|
-|2|group_2|[{ item_id: 3, name: "item_3" }]|
+| group_id | name    | items                                                            |
+| -------- | ------- | ---------------------------------------------------------------- |
+| 1        | group_1 | [{ item_id: 1, name: "item_1" }, { item_id: 2, name: "item_2" }] |
+| 2        | group_2 | [{ item_id: 3, name: "item_3" }]                                 |
 
 ## データを配列として取得する
 
@@ -94,10 +111,10 @@ JSONではなくJSONBを使っているのはなんとなくです
 
 このクエリを実行すると以下のデータを取得できます。
 
-|group_id|name|items|
-|-|-|-|
-|1|group_1|[{"name": "item_1", "item_id": 1, "group_id": 1}, {"name": "item_2", "item_id": 2, "group_id": 1}]|
-|2|group_2|[{"name": "item_3", "item_id": 3, "group_id": 2}]|
+| group_id | name    | items                                                                                              |
+| -------- | ------- | -------------------------------------------------------------------------------------------------- |
+| 1        | group_1 | [{"name": "item_1", "item_id": 1, "group_id": 1}, {"name": "item_2", "item_id": 2, "group_id": 1}] |
+| 2        | group_2 | [{"name": "item_3", "item_id": 3, "group_id": 2}]                                                  |
 
 もし作成日時などで配列の要素の順番を制御したいのであれば以下のように集約時に`ORDER BY`することもできます。[^order-by]
 
@@ -140,10 +157,10 @@ from
 
 これで欲しかったデータを取得できました！
 
-|group_id|name|items|
-|-|-|-|
-|1|group_1|[{ item_id: 1, name: "item_1" }, { item_id: 2, name: "item_2" }]|
-|2|group_2|[{ item_id: 3, name: "item_3" }]|
+| group_id | name    | items                                                            |
+| -------- | ------- | ---------------------------------------------------------------- |
+| 1        | group_1 | [{ item_id: 1, name: "item_1" }, { item_id: 2, name: "item_2" }] |
+| 2        | group_2 | [{ item_id: 3, name: "item_3" }]                                 |
 
 ## データを配列として取得する (入れ子が多重の場合)
 
@@ -205,10 +222,10 @@ from
     groups
 ```
 
-|group_id|name|items|
-|-|-|-|
-|1|group_1|[{"name": "item_1", "item_id": 1, "attributes": [{"name": "attr_1", "attr_id": 1}, {"name": "attr_2", "attr_id": 2}]}, {"name": "item_2", "item_id": 2, "attributes": [{"name": "attr_4", "attr_id": 4}]}]|
-|2|group_2|[{"name": "item_3", "item_id": 3, "attributes": [{"name": "attr_3", "attr_id": 3}]}]|
+| group_id | name    | items                                                                                                                                                                                                      |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | group_1 | [{"name": "item_1", "item_id": 1, "attributes": [{"name": "attr_1", "attr_id": 1}, {"name": "attr_2", "attr_id": 2}]}, {"name": "item_2", "item_id": 2, "attributes": [{"name": "attr_4", "attr_id": 4}]}] |
+| 2        | group_2 | [{"name": "item_3", "item_id": 3, "attributes": [{"name": "attr_3", "attr_id": 3}]}]                                                                                                                       |
 
 ## あとがき
 
